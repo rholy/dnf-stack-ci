@@ -90,6 +90,125 @@ Scenario: Generate new manifest using specs and system repo
             evr: 1.19.5-5.fc29
     """
 
+Scenario: Generate new manifest using prototype input file
+  Given I copy file "{context.dnf.fixturesdir}/data/manifest/rpms.in.yaml" to "/{context.dnf.tempdir}"
+    And I execute "sed -i 's|$FIXTURES_DIR|{context.dnf.fixturesdir}|' rpms.in.yaml"
+   When I execute dnf with args "manifest new"
+   Then the exit code is 0
+    And file "/{context.dnf.tempdir}/packages.manifest.yaml" matches line by line
+    """
+    document: rpm-package-manifest
+    version: *
+    data:
+      repositories:
+        - id: dnf-ci-fedora
+          baseurl: *
+      packages:
+        noarch:
+          - name: basesystem
+            repo_id: dnf-ci-fedora
+            location: noarch/basesystem-11-6.fc29.noarch.rpm
+            checksum: sha256:*
+            size: *
+            evr: 11-6.fc29
+          - name: setup
+            repo_id: dnf-ci-fedora
+            location: noarch/setup-2.12.1-1.fc29.noarch.rpm
+            checksum: sha256:*
+            size: *
+            evr: 2.12.1-1.fc29
+        x86_64:
+          - name: wget
+            repo_id: dnf-ci-fedora
+            location: x86_64/wget-1.19.5-5.fc29.x86_64.rpm
+            checksum: sha256:*
+            size: *
+            evr: 1.19.5-5.fc29
+          - name: nodejs
+            repo_id: dnf-ci-fedora
+            location: x86_64/nodejs-5.12.1-1.fc29.x86_64.rpm
+            checksum: sha256:*
+            size: *
+            evr: 1:5.12.1-1.fc29
+          - name: dwm
+            repo_id: dnf-ci-fedora
+            location: x86_64/dwm-6.1-1.x86_64.rpm
+            checksum: sha256:*
+            size: *
+            evr: 6.1-1
+          - name: npm
+            repo_id: dnf-ci-fedora
+            location: x86_64/npm-5.12.1-1.fc29.x86_64.rpm
+            checksum: sha256:*
+            size: *
+            evr: 1:5.12.1-1.fc29
+          - name: filesystem
+            repo_id: dnf-ci-fedora
+            location: x86_64/filesystem-3.9-2.fc29.x86_64.rpm
+            checksum: sha256:*
+            size: *
+            evr: 3.9-2.fc29
+          - name: glibc
+            repo_id: dnf-ci-fedora
+            location: x86_64/glibc-2.28-9.fc29.x86_64.rpm
+            checksum: sha256:*
+            size: *
+            evr: 2.28-9.fc29
+          - name: glibc-all-langpacks
+            repo_id: dnf-ci-fedora
+            location: x86_64/glibc-all-langpacks-2.28-9.fc29.x86_64.rpm
+            checksum: sha256:*
+            size: *
+            evr: 2.28-9.fc29
+          - name: glibc-common
+            repo_id: dnf-ci-fedora
+            location: x86_64/glibc-common-2.28-9.fc29.x86_64.rpm
+            checksum: sha256:*
+            size: *
+            evr: 2.28-9.fc29
+    """
+
+Scenario: Generate new manifest using prototype input file and system repo
+  Given I copy file "{context.dnf.fixturesdir}/data/manifest/rpms.in.yaml" to "/{context.dnf.tempdir}"
+    And I execute "sed -i 's|$FIXTURES_DIR|{context.dnf.fixturesdir}|' rpms.in.yaml"
+   When I execute dnf with args "manifest new --use-system"
+   Then the exit code is 0
+    And file "/{context.dnf.tempdir}/packages.manifest.yaml" matches line by line
+    """
+    document: rpm-package-manifest
+    version: *
+    data:
+      repositories:
+        - id: dnf-ci-fedora
+          baseurl: *
+      packages:
+        x86_64:
+          - name: dwm
+            repo_id: dnf-ci-fedora
+            location: x86_64/dwm-6.1-1.x86_64.rpm
+            checksum: sha256:*
+            size: *
+            evr: 6.1-1
+          - name: npm
+            repo_id: dnf-ci-fedora
+            location: x86_64/npm-5.12.1-1.fc29.x86_64.rpm
+            checksum: sha256:*
+            size: *
+            evr: 1:5.12.1-1.fc29
+          - name: wget
+            repo_id: dnf-ci-fedora
+            location: x86_64/wget-1.19.5-5.fc29.x86_64.rpm
+            checksum: sha256:*
+            size: *
+            evr: 1.19.5-5.fc29
+          - name: nodejs
+            repo_id: dnf-ci-fedora
+            location: x86_64/nodejs-5.12.1-1.fc29.x86_64.rpm
+            checksum: sha256:*
+            size: *
+            evr: 1:5.12.1-1.fc29
+    """
+
 Scenario: Generate new manifest using installed packages
    When I execute dnf with args "manifest new"
    Then the exit code is 0

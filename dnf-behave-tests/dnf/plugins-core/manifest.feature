@@ -28,12 +28,6 @@ Scenario: Generate new manifest using specs
             size: *
             evr: 2.9.2-1.fc29
         x86_64:
-          - name: wget
-            repo_id: dnf-ci-fedora
-            location: x86_64/wget-1.19.5-5.fc29.x86_64.rpm
-            checksum: sha256:*
-            size: *
-            evr: 1.19.5-5.fc29
           - name: flac
             repo_id: dnf-ci-fedora
             location: x86_64/flac-1.3.2-8.fc29.x86_64.rpm
@@ -46,15 +40,24 @@ Scenario: Generate new manifest using specs
             checksum: sha256:*
             size: *
             evr: 2.4.0-1.fc29
+          - name: wget
+            repo_id: dnf-ci-fedora
+            location: x86_64/wget-1.19.5-5.fc29.x86_64.rpm
+            checksum: sha256:*
+            size: *
+            evr: 1.19.5-5.fc29
     """
 
+
+# Check that the real checksum of RPM package is the same one as in the manifest file
 Scenario: Non-installed package from manifest has matching checksum
-  Given I successfully execute dnf with args "manifest new wget"
+  Given I successfully execute dnf with args "manifest new wget --use-system"
     And I successfully execute dnf with args "manifest download"
    When I execute "sha256sum packages.manifest/wget-1.19.5-5.fc29.x86_64.rpm | cut -d' ' -f1 > real-checksum"
     And I execute "yq '.data.packages.x86_64[].checksum' packages.manifest.yaml | cut -d':' -f2 > manifest-checksum"
     And I execute "diff real-checksum manifest-checksum"
    Then the exit code is 0
+
 
 Scenario: Generate new manifest using specs and system repo
    When I execute dnf with args "manifest new abcde http-parser --use-system"
@@ -90,8 +93,9 @@ Scenario: Generate new manifest using specs and system repo
             evr: 1.19.5-5.fc29
     """
 
+
 Scenario: Generate new manifest using prototype input file
-  Given I copy file "{context.dnf.fixturesdir}/data/manifest/rpms.in.yaml" to "/{context.dnf.tempdir}"
+  Given I copy file "{context.dnf.fixturesdir}/data/manifest/simple.in.yaml" to "/{context.dnf.tempdir}/rpms.in.yaml"
     And I execute "sed -i 's|$FIXTURES_DIR|{context.dnf.fixturesdir}|' rpms.in.yaml"
    When I execute dnf with args "manifest new"
    Then the exit code is 0
@@ -118,30 +122,12 @@ Scenario: Generate new manifest using prototype input file
             size: *
             evr: 2.12.1-1.fc29
         x86_64:
-          - name: wget
-            repo_id: dnf-ci-fedora
-            location: x86_64/wget-1.19.5-5.fc29.x86_64.rpm
-            checksum: sha256:*
-            size: *
-            evr: 1.19.5-5.fc29
-          - name: nodejs
-            repo_id: dnf-ci-fedora
-            location: x86_64/nodejs-5.12.1-1.fc29.x86_64.rpm
-            checksum: sha256:*
-            size: *
-            evr: 1:5.12.1-1.fc29
           - name: dwm
             repo_id: dnf-ci-fedora
             location: x86_64/dwm-6.1-1.x86_64.rpm
             checksum: sha256:*
             size: *
             evr: 6.1-1
-          - name: npm
-            repo_id: dnf-ci-fedora
-            location: x86_64/npm-5.12.1-1.fc29.x86_64.rpm
-            checksum: sha256:*
-            size: *
-            evr: 1:5.12.1-1.fc29
           - name: filesystem
             repo_id: dnf-ci-fedora
             location: x86_64/filesystem-3.9-2.fc29.x86_64.rpm
@@ -166,10 +152,29 @@ Scenario: Generate new manifest using prototype input file
             checksum: sha256:*
             size: *
             evr: 2.28-9.fc29
+          - name: nodejs
+            repo_id: dnf-ci-fedora
+            location: x86_64/nodejs-5.12.1-1.fc29.x86_64.rpm
+            checksum: sha256:*
+            size: *
+            evr: 1:5.12.1-1.fc29
+          - name: npm
+            repo_id: dnf-ci-fedora
+            location: x86_64/npm-5.12.1-1.fc29.x86_64.rpm
+            checksum: sha256:*
+            size: *
+            evr: 1:5.12.1-1.fc29
+          - name: wget
+            repo_id: dnf-ci-fedora
+            location: x86_64/wget-1.19.5-5.fc29.x86_64.rpm
+            checksum: sha256:*
+            size: *
+            evr: 1.19.5-5.fc29
     """
 
+
 Scenario: Generate new manifest using prototype input file and system repo
-  Given I copy file "{context.dnf.fixturesdir}/data/manifest/rpms.in.yaml" to "/{context.dnf.tempdir}"
+  Given I copy file "{context.dnf.fixturesdir}/data/manifest/simple.in.yaml" to "/{context.dnf.tempdir}/rpms.in.yaml"
     And I execute "sed -i 's|$FIXTURES_DIR|{context.dnf.fixturesdir}|' rpms.in.yaml"
    When I execute dnf with args "manifest new --use-system"
    Then the exit code is 0
@@ -189,6 +194,12 @@ Scenario: Generate new manifest using prototype input file and system repo
             checksum: sha256:*
             size: *
             evr: 6.1-1
+          - name: nodejs
+            repo_id: dnf-ci-fedora
+            location: x86_64/nodejs-5.12.1-1.fc29.x86_64.rpm
+            checksum: sha256:*
+            size: *
+            evr: 1:5.12.1-1.fc29
           - name: npm
             repo_id: dnf-ci-fedora
             location: x86_64/npm-5.12.1-1.fc29.x86_64.rpm
@@ -201,13 +212,178 @@ Scenario: Generate new manifest using prototype input file and system repo
             checksum: sha256:*
             size: *
             evr: 1.19.5-5.fc29
-          - name: nodejs
+    """
+
+
+# This use case involves loading the system repository with the flac package installed.
+# The flac package is also specified in the input file, but as a package for reinstallation, so it should be resolved in the manifest.
+Scenario: Generate new manifest with packages for reinstallation using prototype input file and system repo
+  Given I copy file "{context.dnf.fixturesdir}/data/manifest/reinstall.in.yaml" to "/{context.dnf.tempdir}/rpms.in.yaml"
+    And I execute "sed -i 's|$FIXTURES_DIR|{context.dnf.fixturesdir}|' rpms.in.yaml"
+   When I execute dnf with args "manifest new --use-system"
+   Then the exit code is 0
+    And file "/{context.dnf.tempdir}/packages.manifest.yaml" matches line by line
+    """
+    document: rpm-package-manifest
+    version: *
+    data:
+      repositories:
+        - id: dnf-ci-fedora
+          baseurl: *
+      packages:
+        x86_64:
+          - name: flac
             repo_id: dnf-ci-fedora
-            location: x86_64/nodejs-5.12.1-1.fc29.x86_64.rpm
+            location: x86_64/flac-1.3.2-8.fc29.x86_64.rpm
             checksum: sha256:*
             size: *
-            evr: 1:5.12.1-1.fc29
+            evr: 1.3.2-8.fc29
+          - name: wget
+            repo_id: dnf-ci-fedora
+            location: x86_64/wget-1.19.5-5.fc29.x86_64.rpm
+            checksum: sha256:*
+            size: *
+            evr: 1.19.5-5.fc29
     """
+
+
+# Try to install the dnf-ci-conflict package which conflicts with dnf-ci-kernel
+# Also excluding the dnf-ci-obsolete which is a obsoleter of dnf-ci-kernel
+# This ^ is only possible when --allow-erasing is passed
+Scenario: Generate new manifest using prototype input file, system repo and allow erasing
+  Given I use repository "protect-running-kernel"
+    And I successfully execute dnf with args "install dnf-ci-kernel-1.0"
+    And I copy file "{context.dnf.fixturesdir}/data/manifest/allowerasing.in.yaml" to "/{context.dnf.tempdir}/rpms.in.yaml"
+    And I execute "sed -i 's|$FIXTURES_DIR|{context.dnf.fixturesdir}|' rpms.in.yaml"
+   When I execute dnf with args "manifest new --use-system --exclude dnf-ci-obsolete"
+   Then the exit code is 0
+    And file "/{context.dnf.tempdir}/packages.manifest.yaml" matches line by line
+    """
+    document: rpm-package-manifest
+    version: *
+    data:
+      repositories:
+        - id: protect-running-kernel
+          baseurl: *
+      packages:
+        x86_64:
+          - name: dnf-ci-conflict
+            repo_id: protect-running-kernel
+            location: x86_64/dnf-ci-conflict-1.0-1.x86_64.rpm
+            checksum: sha256:*
+            size: *
+            evr: 1.0-1
+    """
+
+
+Scenario: Generate new manifest using prototype input file with a modular package from the enabled stream
+  Given I use repository "dnf-ci-fedora-modular"
+    And I copy file "{context.dnf.fixturesdir}/data/manifest/moduleenable.in.yaml" to "/{context.dnf.tempdir}/rpms.in.yaml"
+    And I execute "sed -i 's|$FIXTURES_DIR|{context.dnf.fixturesdir}|' rpms.in.yaml"
+   When I execute dnf with args "manifest new --use-system"
+   Then the exit code is 0
+    And file "/{context.dnf.tempdir}/packages.manifest.yaml" contains lines
+    """
+    document: rpm-package-manifest
+    version: *
+    data:
+      repositories:
+        - id: dnf-ci-fedora-modular
+          baseurl: *
+      packages:
+        x86_64:
+          - name: nodejs
+            repo_id: dnf-ci-fedora-modular
+            location: x86_64/nodejs-10.11.0-1.module_2200*
+            checksum: sha256:*
+            size: *
+            evr: 1:10.11.0-1.module_2200*
+            module: nodejs:10
+          - name: npm
+            repo_id: dnf-ci-fedora-modular
+            location: x86_64/npm-10.11.0-1.module_2200*
+            checksum: sha256:*
+            size: *
+            evr: 1:10.11.0-1.module_2200*
+            module: nodejs:10
+    ...
+    ---
+    document: modulemd
+    version: 2
+    data:
+      name: nodejs
+      stream: "10"
+      version: 20180920144631
+      context: 6c81f848
+      arch: x86_64
+      summary: Javascript runtime
+      description: >-
+        Node.js is a platform built on Chrome''s JavaScript runtime for easily building
+        fast, scalable network applications. Node.js uses an event-driven, non-blocking
+        I/O model that makes it lightweight and efficient, perfect for data-intensive
+        real-time applications that run across distributed devices.
+      license:
+        module:
+        - MIT
+        content:
+        - MIT
+        - MIT and ASL 2.0 and ISC and BSD
+        - MIT and BSD and ISC
+      dependencies:
+      - buildrequires:
+          platform: *
+        requires:
+          platform: *
+      references:
+        community: http://nodejs.org
+        documentation: http://nodejs.org/en/docs
+        tracker: https://github.com/nodejs/node/issues
+      profiles:
+        default:
+          rpms:
+          - nodejs
+          - npm
+        development:
+          rpms:
+          - nodejs
+          - nodejs-devel
+          - npm
+        minimal:
+          rpms:
+          - nodejs
+      api:
+        rpms:
+        - nodejs
+        - nodejs-devel
+        - npm
+      components:
+        rpms:
+          libuv:
+            rationale: Platform abstraction layer for Node.js
+            repository: git*
+            cache: https://src.fedoraproject.org/repo/pkgs/libuv
+            ref: "1"
+          nghttp2:
+            rationale: Needed for HTTP2 support
+            repository: git*
+            cache: https://src.fedoraproject.org/repo/pkgs/nghttp2
+            ref: master
+          nodejs:
+            rationale: Javascript runtime and npm package manager.
+            repository: git*
+            cache: https://src.fedoraproject.org/repo/pkgs/nodejs
+            ref: "10"
+            buildorder: 10
+      artifacts:
+        rpms:
+        - nodejs-1:10.11.0-1.module_2200*
+        - nodejs-1:10.11.0-1.module_2200*
+        - nodejs-devel-1:10.11.0-1.module_2200*
+        - nodejs-docs-1:10.11.0-1.module_2200*
+        - npm-1:10.11.0-1.module_2200*
+    ...
+    """
+
 
 Scenario: Generate new manifest using installed packages
    When I execute dnf with args "manifest new"
@@ -267,6 +443,7 @@ Scenario: Generate new manifest using installed packages
             evr: 2.28-9.fc29
     """
 
+
 Scenario: Download packages from the manifest
   Given I successfully execute dnf with args "manifest new abcde http-parser"
    When I execute dnf with args "manifest download"
@@ -277,6 +454,7 @@ Scenario: Download packages from the manifest
         | {context.dnf.tempdir}/packages.manifest/flac-1.3.2-8.fc29.x86_64.rpm        | file://{context.dnf.fixturesdir}/repos/dnf-ci-fedora/x86_64/flac-1.3.2-8.fc29.x86_64.rpm        |
         | {context.dnf.tempdir}/packages.manifest/http-parser-2.4.0-1.fc29.x86_64.rpm | file://{context.dnf.fixturesdir}/repos/dnf-ci-fedora/x86_64/http-parser-2.4.0-1.fc29.x86_64.rpm |
         | {context.dnf.tempdir}/packages.manifest/wget-1.19.5-5.fc29.x86_64.rpm       | file://{context.dnf.fixturesdir}/repos/dnf-ci-fedora/x86_64/wget-1.19.5-5.fc29.x86_64.rpm       |
+
 
 Scenario: Install packages from the manifest
   Given I successfully execute dnf with args "manifest new abcde http-parser"

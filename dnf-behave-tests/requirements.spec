@@ -32,6 +32,7 @@ BuildRequires:  python3-setuptools
 BuildRequires:  rpm-build
 BuildRequires:  rpm-sign
 BuildRequires:  sqlite
+BuildRequires:  yq
 BuildRequires:  zstd
 %if 0%{?fedora}
 BuildRequires:  python3-behave

@@ -48,6 +48,14 @@ Scenario: Generate new manifest using specs
             evr: 2.4.0-1.fc29
     """
 
+Scenario: Non-installed package from manifest has matching checksum
+  Given I successfully execute dnf with args "manifest new wget"
+    And I successfully execute dnf with args "manifest download"
+   When I execute "sha256sum packages.manifest/wget-1.19.5-5.fc29.x86_64.rpm | cut -d' ' -f1 > real-checksum"
+    And I execute "yq '.data.packages.x86_64[].checksum' packages.manifest.yaml | cut -d':' -f2 > manifest-checksum"
+    And I execute "diff real-checksum manifest-checksum"
+   Then the exit code is 0
+
 Scenario: Generate new manifest using specs and system repo
    When I execute dnf with args "manifest new abcde http-parser --use-system"
    Then the exit code is 0

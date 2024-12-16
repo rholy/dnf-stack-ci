@@ -13,5 +13,5 @@ Scenario: Reinstall an RPM that is available, but not installed
     And RPMDB Transaction is empty
     And stdout is
         """
-        Package for argument CQRlib available, but not installed.
+        No match for argument: CQRlib
         """

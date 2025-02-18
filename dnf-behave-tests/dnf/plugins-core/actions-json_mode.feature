@@ -369,13 +369,13 @@ check_reply(
 
     And file "/var/log/dnf5.log" contains lines
     """
-    TRACE Actions plugin: Hook in file .* Test log message 1
-    DEBUG Actions plugin: Hook in file .* Test log message 2
-    INFO Actions plugin: Hook in file .* Test log message 3
-    NOTICE Actions plugin: Hook in file .* Test log message 4
-    WARNING Actions plugin: Hook in file .* Test log message 5
-    ERROR Actions plugin: Hook in file .* Test log message 6
-    CRITICAL Actions plugin: Hook in file .* Test log message 7
+    TRACE Actions plugin: .* Test log message 1
+    DEBUG Actions plugin: .* Test log message 2
+    INFO Actions plugin: .* Test log message 3
+    NOTICE Actions plugin: .* Test log message 4
+    WARNING Actions plugin: .* Test log message 5
+    ERROR Actions plugin: .* Test log message 6
+    CRITICAL Actions plugin: .* Test log message 7
     """
 
 
@@ -726,3 +726,114 @@ check_reply("Incomplete input", {})
     Syntax error in json request .* expected
     Syntax error in json request .* Incomplete input
     """
+
+
+Scenario: Testing the "error" action message (JSON mode)
+  Given I create and substitute file "/etc/dnf/libdnf5-plugins/actions.d/test.actions" with
+    """
+    repos_configured:::mode=json:/bin/python3 {context.dnf.installroot}/etc/dnf/libdnf5-plugins/actions.d/json_hook_error1.py {context.dnf.installroot}/actions.log
+    repos_configured:::mode=json raise_error=0:/bin/python3 {context.dnf.installroot}/etc/dnf/libdnf5-plugins/actions.d/json_hook_error2.py {context.dnf.installroot}/actions.log
+    repos_configured:::mode=json raise_error=1:/bin/python3 {context.dnf.installroot}/etc/dnf/libdnf5-plugins/actions.d/json_hook_error3.py {context.dnf.installroot}/actions.log
+    """
+
+    And I create file "/etc/dnf/libdnf5-plugins/actions.d/json_hook_error1.py" with
+"""
+from json_test_utils import *
+
+send_request({"op": "error", "args": {"message": "Error in action process 1"}})
+check_reply(
+    'Sent "error" message, no "raise_error" defined',
+    {"op": "reply", "requested_op": "error", "domain": "error", "status": "OK"})
+"""
+
+    And I create file "/etc/dnf/libdnf5-plugins/actions.d/json_hook_error2.py" with
+"""
+from json_test_utils import *
+
+send_request({"op": "error", "args": {"message": "Error in action process 2"}})
+check_reply(
+    'Sent "error" message, "raise_error=0"',
+    {"op": "reply", "requested_op": "error", "domain": "error", "status": "OK"})
+"""
+
+    And I create file "/etc/dnf/libdnf5-plugins/actions.d/json_hook_error3.py" with
+"""
+from json_test_utils import *
+
+send_request({"op": "error", "args": {"message": "Error in action process 3"}})
+check_reply(
+    'Sent "error" message, "raise_error=1"',
+    {"op": "reply", "requested_op": "error", "domain": "error", "status": "OK"})
+"""
+
+   When I execute dnf with args "repo list"
+   Then the exit code is 1
+
+    And file "/actions.log" contents is
+    """
+    Sent "error" message, no "raise_error" defined: OK
+    Sent "error" message, "raise_error=0": OK
+    Sent "error" message, "raise_error=1": Error: No reply
+    """
+
+    And stderr contains "Action sent error message: Error in action process 3"
+
+    And file "/var/log/dnf5.log" contains lines
+    """
+    ERROR Actions plugin: .* Action sent error message: Error in action process 1
+    ERROR Actions plugin: .* Action sent error message: Error in action process 2
+    """
+
+
+Scenario: Testing the "stop" action request (JSON mode)
+  Given I create and substitute file "/etc/dnf/libdnf5-plugins/actions.d/test.actions" with
+    """
+    repos_configured:::mode=json raise_error=1:/bin/python3 {context.dnf.installroot}/etc/dnf/libdnf5-plugins/actions.d/json_hook_stop.py {context.dnf.installroot}/actions.log
+    """
+
+    And I create file "/etc/dnf/libdnf5-plugins/actions.d/json_hook_stop.py" with
+"""
+from json_test_utils import *
+
+send_request({"op": "stop", "args": {"message": "I want to stop the task"}})
+check_reply(
+    'Sent "stop" request',
+    {"op": "reply", "requested_op": "stop", "domain": "stop", "status": "OK"})
+"""
+
+   When I execute dnf with args "repo list"
+   Then the exit code is 1
+
+    And file "/actions.log" contents is
+    """
+    Sent "stop" request: Error: No reply
+    """
+
+    And stderr contains "Action calls for stop: I want to stop the task"
+
+
+Scenario: Testing the "stop" action request (JSON mode), must thrown exception even with "raise_error=0"
+  Given I create and substitute file "/etc/dnf/libdnf5-plugins/actions.d/test.actions" with
+    """
+    repos_configured:::mode=json raise_error=0:/bin/python3 {context.dnf.installroot}/etc/dnf/libdnf5-plugins/actions.d/json_hook_stop.py {context.dnf.installroot}/actions.log
+    """
+
+    And I create file "/etc/dnf/libdnf5-plugins/actions.d/json_hook_stop.py" with
+"""
+from json_test_utils import *
+
+send_request({"op": "stop", "args": {"message": "I want to stop the task"}})
+check_reply(
+    'Sent "stop" request',
+    {"op": "reply", "requested_op": "stop", "domain": "stop", "status": "OK"})
+"""
+
+   When I execute dnf with args "repo list"
+   Then the exit code is 1
+
+    And file "/actions.log" contents is
+    """
+    Sent "stop" request: Error: No reply
+    """
+
+    And stderr contains "Action calls for stop: I want to stop the task"

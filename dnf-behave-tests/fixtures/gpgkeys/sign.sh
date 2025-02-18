@@ -16,6 +16,7 @@ for KEY_NAME in $KEYSPECS; do
     # set defaults
     USE_SIGN_SUBKEY=0
     USE_NOEOF_KEYS=0
+    USE_EXPIRATION_DATE=0
 
     # read config file for key
     if [ -f "${DIR}/keyspecs/${KEY_NAME}/config" ]; then
@@ -37,8 +38,15 @@ for KEY_NAME in $KEYSPECS; do
     TMP_KEY_DIR="${TMP_DIR}/gpghome"
     ln -s "${KEY_DIR}" "${TMP_KEY_DIR}"
 
-    # create key (without password, without expire)
-    HOME=${TMP_KEY_DIR} gpg2 --batch --passphrase '' --quick-gen-key "${KEY_NAME}" default default 0
+    # keys are without expiration date by default
+    # if expiration is requested, set it to 1 year from now
+    EXPIRY_DATE=0
+    if [ "${USE_EXPIRATION_DATE}" = "1" ]; then
+        EXPIRY_DATE=$(date -d "+1 year" +%Y-%m-%d)
+    fi
+
+    # create key (without password)
+    HOME=${TMP_KEY_DIR} gpg2 --batch --passphrase '' --quick-gen-key "${KEY_NAME}" default default "${EXPIRY_DATE}"
 
     if [ "${USE_SIGN_SUBKEY}" = "1" ]; then
         # add sign subkey

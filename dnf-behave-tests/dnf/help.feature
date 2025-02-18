@@ -67,8 +67,8 @@ Examples:
         | dnf-3    | --help    |  dnf \[options] COMMAND   |
         | yum      | help      |  yum \[options] COMMAND   |
         | yum      | --help    |  yum \[options] COMMAND   |
-        | yum-builddep | --help    |  dnf builddep \[-c \[config file]] \[-q] \[-v] \[--version]    |
-        | yum shell    | --help    |  yum shell \[-c \[config file]] \[-q] \[-v] \[--version]     |
+        | yum-builddep | --help    |  dnf builddep \[-c CONFIG_FILE] \[-q] \[-v] \[--version] |
+        | yum shell    | --help    |  yum shell \[-c CONFIG_FILE] \[-q] \[-v] \[--version]    |
 
 @bz1746474
 @use.with_os=rhel__ge__8

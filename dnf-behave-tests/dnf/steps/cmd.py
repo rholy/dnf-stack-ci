@@ -9,11 +9,13 @@ import re
 import sys
 import time
 from datetime import datetime
+import json
 
 from common.lib.cmd import assert_exitcode, run_in_context
 from common.lib.file import prepend_installroot
 from fixtures import start_server_based_on_type
 from lib.rpmdb import get_rpmdb_rpms
+from lib.json import diff_json_pattern_values
 
 
 def get_boot_time():
@@ -483,3 +485,18 @@ repo_sack.create_repos_from_system_configuration()
 repo_sack.update_and_load_enabled_repos(True)
 """
     execute_python_script(context, libdnf5_setup_script + context.text)
+
+
+@behave.then("stdout json matches")
+def then_json_matches(context):
+    """
+    Compare json output from stdout with specified json.
+    Specified json can contain fnmatch patterns in string values.
+    """
+    table_json = json.loads(context.text)
+    out_json = json.loads(context.cmd_stdout)
+    diffs = diff_json_pattern_values(".", table_json, out_json)
+    if diffs:
+        for diff in diffs:
+            print(diff)
+        raise AssertionError("Expected JSON doesn't match")
